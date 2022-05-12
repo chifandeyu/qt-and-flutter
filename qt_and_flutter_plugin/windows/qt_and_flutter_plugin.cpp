@@ -9,10 +9,25 @@
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
-
+#include <QWidget>
+#include <QGridLayout>
+#include <QLabel>
+#include "qmfcapp.h"
 #include <map>
 #include <memory>
 #include <sstream>
+
+BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID /*lpvReserved*/)
+{
+    static bool ownApplication = FALSE;
+
+    if (dwReason == DLL_PROCESS_ATTACH)
+        ownApplication = QMfcApp::pluginInstance(hInstance);
+    if (dwReason == DLL_PROCESS_DETACH && ownApplication)
+        delete qApp;
+
+    return TRUE;
+}
 
 namespace {
 
@@ -67,7 +82,20 @@ void QtAndFlutterPlugin::HandleMethodCall(
       version_stream << "7";
     }
     result->Success(flutter::EncodableValue(version_stream.str()));
-  } else {
+  } else if(method_call.method_name().compare("createWidget") == 0) {
+      QWidget* widget = new QWidget;
+      QLabel* lable = new QLabel( "Im a Qt label.", widget);
+      QGridLayout* layout = new QGridLayout();
+      lable->setAlignment(Qt::AlignCenter);
+      layout->addWidget(lable);
+      widget->setLayout(layout);
+      widget->resize(400, 300);
+      widget->show();
+      widget->activateWindow();
+
+      result->Success(flutter::EncodableValue(true));
+  }
+  else {
     result->NotImplemented();
   }
 }
